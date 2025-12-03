@@ -1,6 +1,7 @@
 import streamlit as st
 from news_fetcher import NewsFetcher
 from llm_summarizer import LLMSummarizer
+from fake_news_detector import FakeNewsDetector
 from datetime import datetime
 
 # Page configuration
@@ -53,6 +54,7 @@ st.markdown("""
 if 'news_fetcher' not in st.session_state:
     st.session_state.news_fetcher = NewsFetcher()
     st.session_state.summarizer = LLMSummarizer()
+    st.session_state.fake_detector = FakeNewsDetector()
     st.session_state.chat_history = []
     st.session_state.current_articles = []
 
@@ -131,9 +133,13 @@ with chat_container:
                 st.markdown(f"**🤖 AI Assistant:**")
                 st.markdown(msg['content'])
                 
+                # Show fake news filtering info
+                if msg.get('fake_filtered', 0) > 0:
+                    st.info(f"🛡️ Filtered out {msg['fake_filtered']} fake news article(s)")
+                
                 # Show articles used
                 if 'articles' in msg and msg['articles']:
-                    with st.expander(f"📰 {len(msg['articles'])} news sources analyzed"):
+                    with st.expander(f"📰 {len(msg['articles'])} verified news sources analyzed"):
                         for idx, article in enumerate(msg['articles'][:5], 1):
                             st.markdown(f'<div class="article-preview">', unsafe_allow_html=True)
                             st.markdown(f"**{idx}. {article['title']}**")
@@ -209,7 +215,7 @@ if send_button and user_input:
         # Fetch news based on theme
         articles = st.session_state.news_fetcher.search_news(
             query=theme,
-            page_size=num_articles
+            page_size=num_articles * 2  # Fetch more to account for filtering
         )
         
         if not articles:
@@ -217,21 +223,36 @@ if send_button and user_input:
             articles = st.session_state.news_fetcher.get_top_headlines(
                 query=theme,
                 country=country,
-                page_size=num_articles
+                page_size=num_articles * 2
             )
         
         st.toast(f"Found {len(articles)} articles", icon="📰")
     
+    with st.spinner("🛡️ Filtering fake news..."):
+        # Filter out fake news
+        real_articles, fake_count, _ = st.session_state.fake_detector.filter_fake_articles(articles)
+        
+        if fake_count > 0:
+            st.toast(f"🚫 Filtered out {fake_count} fake news articles", icon="🛡️")
+        
+        # Limit to requested number
+        real_articles = real_articles[:num_articles]
+        
+        if not real_articles:
+            st.error("❌ No reliable news articles found after filtering. Try a different topic.")
+            st.stop()
+    
     with st.spinner("🤖 Analyzing news and generating answer..."):
-        # Generate AI response
-        answer = st.session_state.summarizer.answer_from_news(user_input, articles)
+        # Generate AI response using only real news
+        answer = st.session_state.summarizer.answer_from_news(user_input, real_articles)
         
         # Add assistant response to chat
         st.session_state.chat_history.append({
             'role': 'assistant',
             'content': answer,
-            'articles': articles,
-            'timestamp': datetime.now()
+            'articles': real_articles,
+            'timestamp': datetime.now(),
+            'fake_filtered': fake_count
         })
     
     st.rerun()
