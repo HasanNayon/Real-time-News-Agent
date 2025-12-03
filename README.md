@@ -1,17 +1,17 @@
-# 📰 Real-Time News Chatbot
+# 🤖 AI News Chatbot
 
-An intelligent web application that fetches real-time news from around the world and uses AI (Groq LLM) to summarize articles and answer questions about current events.
+An intelligent conversational chatbot that understands your questions about current events, searches for relevant news articles, and provides AI-powered answers based on the latest news. Ask anything about current events and get instant, well-researched responses!
 
 ## ✨ Features
 
-- **🌐 Beautiful Web Interface**: Modern Streamlit-based UI with responsive design
-- **📊 Real-Time News Fetching**: Get the latest headlines from NewsAPI
-- **🤖 AI-Powered Summarization**: Uses Groq's LLama 3.1 model to create concise summaries
-- **💬 Intelligent Q&A**: Ask questions about news articles and get AI-generated answers
-- **🔍 Multiple News Sources**: Search by keywords, categories, or get top headlines
-- **📑 Category Filtering**: Browse news by Business, Technology, Sports, Health, Science, Entertainment, and more
-- **🌍 Multi-Country Support**: Access news from USA, UK, Canada, Australia, India, and more
-- **📝 Chat History**: Keep track of all summaries and questions in one place
+- **💬 Conversational Interface**: Chat naturally with the AI about any current event
+- **🧠 Smart Theme Extraction**: AI automatically identifies the main topic from your question
+- **📰 Automatic News Search**: Fetches relevant news articles based on your query
+- **🤖 AI-Powered Answers**: Uses Groq's LLama 3.1 model to read news and answer your questions
+- **📊 Source Citations**: Shows which news articles were used to generate each answer
+- **🔄 Real-Time Updates**: Access to the latest breaking news from around the world
+- **🌍 Multi-Region Support**: Get news from USA, UK, Canada, Australia, and India
+- **💾 Chat History**: Track all your conversations and answers in one place
 
 ## 🚀 Quick Start
 
@@ -67,35 +67,40 @@ The app will automatically open in your default web browser at `http://localhost
 
 ## 📖 How to Use
 
-### Web Interface (Streamlit)
+### Chatbot Interface
 
-1. **Select News Source** (in the sidebar):
-   - **Top Headlines**: Get breaking news from a specific country
-   - **Search News**: Find articles using keywords
-   - **Category News**: Browse by category (Business, Tech, Sports, etc.)
+1. **Ask Any Question**: Simply type your question about current events in the chat input
+   - Example: "What's happening with artificial intelligence?"
+   - Example: "Tell me about the latest climate change news"
+   - Example: "Any updates on space exploration?"
 
-2. **Configure Options**:
-   - Choose country (for headlines)
-   - Enter search terms (for search)
-   - Select category (for category news)
-   - Set number of articles (1-10)
+2. **AI Processing**: The chatbot will:
+   - Extract the main theme from your question
+   - Search for relevant news articles
+   - Read and analyze the articles
+   - Generate a comprehensive answer
 
-3. **Fetch News**: Click the fetch/search button to load articles
+3. **Review Sources**: Expand the news sources section to see which articles were used
 
-4. **View Articles**: Browse articles in the "Articles" tab with:
-   - Headlines and descriptions
-   - Source and publish date
-   - Images (when available)
-   - Links to full articles
+4. **Continue Conversation**: Keep asking questions - your chat history is saved!
 
-5. **AI Features** (in the "Chat & Summaries" tab):
-   - Click "Summarize All Articles" to get an AI summary
-   - Ask questions about the articles in the text input
-   - View chat history with timestamps
+5. **Adjust Settings** (in the sidebar):
+   - Number of articles to analyze (3-10)
+   - News region (US, UK, Canada, Australia, India)
+   - Clear chat history when needed
+
+### Example Queries
+
+- "What's the latest on AI development?"
+- "Tell me about recent technology breakthroughs"
+- "Any news on the stock market?"
+- "What's happening with climate change?"
+- "Updates on space missions?"
+- "Latest sports news?"
 
 ### Command Line Interface (Optional)
 
-You can still use the original CLI version:
+For advanced users, a CLI version is also available:
 ```bash
 python main.py
 ```

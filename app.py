@@ -5,8 +5,8 @@ from datetime import datetime
 
 # Page configuration
 st.set_page_config(
-    page_title="Real-Time News Chatbot",
-    page_icon="📰",
+    page_title="AI News Chatbot",
+    page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -15,24 +15,36 @@ st.set_page_config(
 st.markdown("""
     <style>
     .main-header {
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: bold;
         color: #1E88E5;
         text-align: center;
-        margin-bottom: 2rem;
-    }
-    .article-card {
-        padding: 1.5rem;
-        border-radius: 10px;
-        background-color: #f0f2f6;
         margin-bottom: 1rem;
-        border-left: 5px solid #1E88E5;
     }
-    .summary-box {
-        padding: 1.5rem;
+    .user-message {
+        padding: 1rem;
         border-radius: 10px;
-        background-color: #e3f2fd;
-        border-left: 5px solid #0D47A1;
+        background-color: #E3F2FD;
+        margin-bottom: 1rem;
+        border-left: 4px solid #1E88E5;
+    }
+    .bot-message {
+        padding: 1rem;
+        border-radius: 10px;
+        background-color: #F5F5F5;
+        margin-bottom: 1rem;
+        border-left: 4px solid #4CAF50;
+    }
+    .article-preview {
+        padding: 0.8rem;
+        border-radius: 8px;
+        background-color: #FAFAFA;
+        margin: 0.5rem 0;
+        border-left: 3px solid #FF9800;
+        font-size: 0.9rem;
+    }
+    .stTextInput > div > div > input {
+        border-radius: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -41,210 +53,196 @@ st.markdown("""
 if 'news_fetcher' not in st.session_state:
     st.session_state.news_fetcher = NewsFetcher()
     st.session_state.summarizer = LLMSummarizer()
-    st.session_state.current_articles = []
     st.session_state.chat_history = []
+    st.session_state.current_articles = []
 
 # Title
-st.markdown('<h1 class="main-header">📰 Real-Time News Chatbot</h1>', unsafe_allow_html=True)
-st.markdown("### Get the latest news and AI-powered summaries")
+st.markdown('<h1 class="main-header">🤖 AI News Chatbot</h1>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; color: gray;">Ask me anything about current events - I\'ll find the latest news and answer your questions!</p>', unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Settings")
     
-    # News source selection
-    news_source = st.radio(
-        "Select News Source:",
-        ["Top Headlines", "Search News", "Category News"]
+    # Number of articles to fetch
+    num_articles = st.slider("Articles to fetch per query", 3, 10, 5, 
+                             help="Number of news articles to search and analyze")
+    
+    # Country selection
+    country = st.selectbox(
+        "News Region",
+        ["us", "gb", "ca", "au", "in"],
+        format_func=lambda x: {
+            "us": "🇺🇸 United States",
+            "gb": "🇬🇧 United Kingdom",
+            "ca": "🇨🇦 Canada",
+            "au": "🇦🇺 Australia",
+            "in": "🇮🇳 India"
+        }[x],
+        help="Select the region for news search"
     )
     
     st.markdown("---")
     
-    # Configuration based on selection
-    if news_source == "Top Headlines":
-        st.subheader("📊 Top Headlines")
-        country = st.selectbox(
-            "Select Country",
-            ["us", "gb", "ca", "au", "in", "de", "fr", "jp", "cn", "br"],
-            format_func=lambda x: {
-                "us": "🇺🇸 United States",
-                "gb": "🇬🇧 United Kingdom",
-                "ca": "🇨🇦 Canada",
-                "au": "🇦🇺 Australia",
-                "in": "🇮🇳 India",
-                "de": "🇩🇪 Germany",
-                "fr": "🇫🇷 France",
-                "jp": "🇯🇵 Japan",
-                "cn": "🇨🇳 China",
-                "br": "🇧🇷 Brazil"
-            }[x]
-        )
-        num_articles = st.slider("Number of Articles", 1, 10, 5)
-        
-        if st.button("🔍 Fetch Headlines", use_container_width=True):
-            with st.spinner("Fetching top headlines..."):
-                st.session_state.current_articles = st.session_state.news_fetcher.get_top_headlines(
-                    country=country,
-                    page_size=num_articles
-                )
-                if st.session_state.current_articles:
-                    st.success(f"✅ Loaded {len(st.session_state.current_articles)} articles!")
-                else:
-                    st.error("❌ No articles found.")
+    # Chat history management
+    st.subheader("💬 Chat Management")
     
-    elif news_source == "Search News":
-        st.subheader("🔍 Search News")
-        search_query = st.text_input("Enter search keywords", placeholder="e.g., artificial intelligence")
-        num_articles = st.slider("Number of Articles", 1, 10, 5)
-        
-        if st.button("🔍 Search", use_container_width=True) and search_query:
-            with st.spinner(f"Searching for '{search_query}'..."):
-                st.session_state.current_articles = st.session_state.news_fetcher.search_news(
-                    query=search_query,
-                    page_size=num_articles
-                )
-                if st.session_state.current_articles:
-                    st.success(f"✅ Found {len(st.session_state.current_articles)} articles!")
-                else:
-                    st.error("❌ No articles found.")
+    if st.button("🗑️ Clear Chat History", use_container_width=True):
+        st.session_state.chat_history = []
+        st.session_state.current_articles = []
+        st.rerun()
     
-    else:  # Category News
-        st.subheader("📑 Browse by Category")
-        category = st.selectbox(
-            "Select Category",
-            ["business", "entertainment", "general", "health", "science", "sports", "technology"],
-            format_func=lambda x: x.capitalize()
-        )
-        num_articles = st.slider("Number of Articles", 1, 10, 5)
-        
-        if st.button("🔍 Fetch News", use_container_width=True):
-            with st.spinner(f"Fetching {category} news..."):
-                st.session_state.current_articles = st.session_state.news_fetcher.get_top_headlines(
-                    category=category,
-                    page_size=num_articles
-                )
-                if st.session_state.current_articles:
-                    st.success(f"✅ Loaded {len(st.session_state.current_articles)} articles!")
-                else:
-                    st.error("❌ No articles found.")
+    if st.session_state.chat_history:
+        st.info(f"💬 {len(st.session_state.chat_history)} messages in history")
     
     st.markdown("---")
     
-    # Action buttons
-    st.subheader("🤖 AI Actions")
+    # Example queries
+    st.subheader("💡 Example Queries")
+    st.markdown("""
+    - What's happening with AI?
+    - Latest news on climate change
+    - Tell me about Tesla stock
+    - Any updates on space exploration?
+    - What's going on with elections?
+    - Recent developments in technology
+    """)
     
-    if st.button("📝 Summarize All Articles", use_container_width=True, disabled=len(st.session_state.current_articles) == 0):
-        with st.spinner("Generating AI summary..."):
-            summary = st.session_state.summarizer.summarize_articles(st.session_state.current_articles)
-            st.session_state.chat_history.append({
-                "type": "summary",
-                "content": summary,
-                "timestamp": datetime.now()
-            })
-    
-    if st.button("🗑️ Clear All", use_container_width=True):
-        st.session_state.current_articles = []
-        st.session_state.chat_history = []
-        st.rerun()
+    st.markdown("---")
+    st.caption("Powered by NewsAPI & Groq AI")
 
-# Main content area
-if not st.session_state.current_articles:
-    # Welcome message
-    st.info("👈 Select a news source from the sidebar to get started!")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("### 📊 Top Headlines")
-        st.write("Get the latest breaking news from around the world")
-    with col2:
-        st.markdown("### 🔍 Search News")
-        st.write("Find articles about specific topics or keywords")
-    with col3:
-        st.markdown("### 📑 Category News")
-        st.write("Browse news by category: Business, Tech, Sports, etc.")
-    
-else:
-    # Display articles
-    st.header(f"📰 Articles ({len(st.session_state.current_articles)})")
-    
-    # Create tabs for articles and chat
-    tab1, tab2 = st.tabs(["📄 Articles", "💬 Chat & Summaries"])
-    
-    with tab1:
-        for idx, article in enumerate(st.session_state.current_articles, 1):
-            with st.container():
-                st.markdown(f'<div class="article-card">', unsafe_allow_html=True)
-                
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.markdown(f"### {idx}. {article['title']}")
-                with col2:
-                    if article['urlToImage']:
-                        st.image(article['urlToImage'], width=100)
-                
-                st.markdown(f"**Source:** {article['source']} | **Published:** {article['publishedAt']}")
-                st.markdown(f"**Description:** {article['description']}")
-                
-                with st.expander("Read more..."):
-                    if article['content']:
-                        st.write(article['content'])
-                    st.markdown(f"[🔗 Read full article]({article['url']})")
-                
+# Main chat interface
+st.markdown("---")
+
+# Chat display area
+chat_container = st.container()
+
+with chat_container:
+    if st.session_state.chat_history:
+        for msg in st.session_state.chat_history:
+            if msg['role'] == 'user':
+                st.markdown(f'<div class="user-message">', unsafe_allow_html=True)
+                st.markdown(f"**👤 You:** {msg['content']}")
+                st.caption(msg['timestamp'].strftime('%I:%M %p'))
                 st.markdown('</div>', unsafe_allow_html=True)
-    
-    with tab2:
-        # Q&A Interface
-        st.subheader("💬 Ask Questions About the Articles")
-        
-        question = st.text_input("Ask a question about the news:", placeholder="e.g., What are the main topics covered?")
-        
-        col1, col2 = st.columns([1, 5])
-        with col1:
-            if st.button("📤 Ask", use_container_width=True) and question:
-                with st.spinner("Thinking..."):
-                    answer = st.session_state.summarizer.answer_question(
-                        st.session_state.current_articles,
-                        question
-                    )
-                    st.session_state.chat_history.append({
-                        "type": "qa",
-                        "question": question,
-                        "answer": answer,
-                        "timestamp": datetime.now()
-                    })
-                    st.rerun()
-        
-        # Display chat history
-        if st.session_state.chat_history:
-            st.markdown("---")
-            st.subheader("📝 History")
             
-            for item in reversed(st.session_state.chat_history):
-                if item['type'] == 'summary':
-                    st.markdown(f'<div class="summary-box">', unsafe_allow_html=True)
-                    st.markdown("**📝 AI Summary**")
-                    st.markdown(f"*{item['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}*")
-                    st.write(item['content'])
-                    st.markdown('</div>', unsafe_allow_html=True)
-                elif item['type'] == 'qa':
-                    st.markdown(f'<div class="summary-box">', unsafe_allow_html=True)
-                    st.markdown(f"**❓ Question:** {item['question']}")
-                    st.markdown(f"*{item['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}*")
-                    st.markdown(f"**💬 Answer:**")
-                    st.write(item['answer'])
-                    st.markdown('</div>', unsafe_allow_html=True)
+            elif msg['role'] == 'assistant':
+                st.markdown(f'<div class="bot-message">', unsafe_allow_html=True)
+                st.markdown(f"**🤖 AI Assistant:**")
+                st.markdown(msg['content'])
                 
-                st.markdown("<br>", unsafe_allow_html=True)
-        else:
-            st.info("💡 Generate a summary or ask questions to see them here!")
+                # Show articles used
+                if 'articles' in msg and msg['articles']:
+                    with st.expander(f"📰 {len(msg['articles'])} news sources analyzed"):
+                        for idx, article in enumerate(msg['articles'][:5], 1):
+                            st.markdown(f'<div class="article-preview">', unsafe_allow_html=True)
+                            st.markdown(f"**{idx}. {article['title']}**")
+                            st.caption(f"{article['source']} · {article.get('publishedAt', 'Unknown')}")
+                            if article.get('url'):
+                                st.markdown(f"[Read full article →]({article['url']})")
+                            st.markdown('</div>', unsafe_allow_html=True)
+                
+                st.caption(msg['timestamp'].strftime('%I:%M %p'))
+                st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.info("👋 Welcome! Ask me anything about current news and I'll search for the latest articles to answer your question.")
+        
+        # Example queries as buttons
+        st.markdown("#### Try asking:")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📱 What's happening with AI?"):
+                user_query = "What's happening with AI?"
+                st.session_state.trigger_query = user_query
+                st.rerun()
+            if st.button("🌍 Latest on climate change"):
+                user_query = "Latest on climate change"
+                st.session_state.trigger_query = user_query
+                st.rerun()
+        with col2:
+            if st.button("🚀 Space exploration updates"):
+                user_query = "Space exploration updates"
+                st.session_state.trigger_query = user_query
+                st.rerun()
+            if st.button("💼 Technology trends"):
+                user_query = "Technology trends"
+                st.session_state.trigger_query = user_query
+                st.rerun()
+
+# Input area at the bottom
+st.markdown("---")
+col1, col2 = st.columns([6, 1])
+
+with col1:
+    user_input = st.text_input(
+        "Ask about current news...",
+        placeholder="e.g., What's the latest on artificial intelligence?",
+        key="user_input",
+        label_visibility="collapsed"
+    )
+
+with col2:
+    send_button = st.button("📤 Send", use_container_width=True, type="primary")
+
+# Handle triggered query from example buttons
+if 'trigger_query' in st.session_state:
+    user_input = st.session_state.trigger_query
+    del st.session_state.trigger_query
+    send_button = True
+
+# Process user input
+if send_button and user_input:
+    # Add user message to chat
+    st.session_state.chat_history.append({
+        'role': 'user',
+        'content': user_input,
+        'timestamp': datetime.now()
+    })
+    
+    # Show processing status
+    with st.spinner("🔍 Extracting theme..."):
+        # Extract theme from query
+        theme = st.session_state.summarizer.extract_theme(user_input)
+        st.toast(f"Searching for: {theme}", icon="🔍")
+    
+    with st.spinner("📰 Fetching news articles..."):
+        # Fetch news based on theme
+        articles = st.session_state.news_fetcher.search_news(
+            query=theme,
+            page_size=num_articles
+        )
+        
+        if not articles:
+            # Try getting top headlines if search fails
+            articles = st.session_state.news_fetcher.get_top_headlines(
+                query=theme,
+                country=country,
+                page_size=num_articles
+            )
+        
+        st.toast(f"Found {len(articles)} articles", icon="📰")
+    
+    with st.spinner("🤖 Analyzing news and generating answer..."):
+        # Generate AI response
+        answer = st.session_state.summarizer.answer_from_news(user_input, articles)
+        
+        # Add assistant response to chat
+        st.session_state.chat_history.append({
+            'role': 'assistant',
+            'content': answer,
+            'articles': articles,
+            'timestamp': datetime.now()
+        })
+    
+    st.rerun()
 
 # Footer
-st.markdown("---")
+st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown(
     """
-    <div style='text-align: center; color: gray;'>
-        Built with ❤️ using Streamlit, NewsAPI, and Groq AI | 
-        <a href='https://github.com/HasanNayon/Real-time-News-Agent' target='_blank'>GitHub</a>
+    <div style='text-align: center; color: gray; padding: 20px;'>
+        🤖 AI News Chatbot | Powered by NewsAPI & Groq AI<br>
+        <a href='https://github.com/HasanNayon/Real-time-News-Agent' target='_blank'>View on GitHub</a>
     </div>
     """,
     unsafe_allow_html=True
